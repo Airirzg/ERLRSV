@@ -49,21 +49,23 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         content: content,
         senderName: 'Admin',
         senderEmail: user.email,
-        recipientId: recipientId,
+        userId: recipientId,
         parentId: messageId,
       },
     });
 
-    // Create a notification for the recipient
-    await prisma.notification.create({
-      data: {
-        userId: originalMessage.userId,
-        title: 'New Reply to Your Message',
-        message: `Admin has replied to your message "${originalMessage.subject}". messageId:${originalMessage.id}`,
-        type: 'MESSAGE',
-        read: false,
-      }
-    });
+    // Create a notification for the recipient if there's a userId
+    if (originalMessage.userId) {
+      await prisma.notification.create({
+        data: {
+          userId: originalMessage.userId,
+          title: 'New Reply to Your Message',
+          message: `Admin has replied to your message "${originalMessage.subject}". messageId:${originalMessage.id}`,
+          type: 'MESSAGE',
+          read: false,
+        }
+      });
+    }
 
     return res.status(200).json({ message: 'Reply sent successfully', reply });
   } catch (error) {

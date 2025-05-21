@@ -25,8 +25,7 @@ export const createNotification = async (
   userId: string,
   title: string,
   message: string,
-  type: NotificationType,
-  metadata?: Record<string, any>
+  type: NotificationType
 ) => {
   try {
     const notification = await prisma.notification.create({
@@ -35,7 +34,6 @@ export const createNotification = async (
         title,
         message,
         type,
-        metadata: metadata ? JSON.stringify(metadata) : null,
       },
     });
 

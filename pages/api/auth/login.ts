@@ -12,7 +12,6 @@ interface LoginResponse {
     lastName: string;
     email: string;
     phoneNumber?: string | null;
-    type: 'individual' | 'team';
     role: string;
   };
   token: string;
@@ -58,8 +57,7 @@ export default async function handler(
 
     // Determine if user is part of a team
     const isTeamMember = user.teamMembers.length > 0;
-    const isTeamLeader = false; 
-    const type = isTeamLeader || isTeamMember ? 'team' : 'individual';
+    const isTeamLeader = false;
 
     // Create token
     const token = jwt.sign(
@@ -68,7 +66,6 @@ export default async function handler(
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        type,
         role: user.role,
         teamIds: user.teamMembers.map(membership => membership.team.id)
       },
@@ -83,7 +80,6 @@ export default async function handler(
       lastName: user.lastName,
       email: user.email,
       phoneNumber: user.phoneNumber,
-      type,
       role: user.role
     };
 

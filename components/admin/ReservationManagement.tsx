@@ -262,22 +262,6 @@ const ReservationManagement: React.FC = () => {
         <div className="col">
           <div className="card">
             <div className="card-body">
-              <h5 className="card-title mb-4">Reservation Calendar</h5>
-              <FullCalendar
-                plugins={[dayGridPlugin, interactionPlugin]}
-                initialView="dayGridMonth"
-                events={calendarEvents}
-                height="auto"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="row mb-4">
-        <div className="col">
-          <div className="card">
-            <div className="card-body">
               <div className="d-flex justify-content-between align-items-center mb-4">
                 <h5 className="card-title mb-0">Reservation List</h5>
                 <div className="d-flex gap-2">
@@ -383,6 +367,24 @@ const ReservationManagement: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      <div className="row mb-4">
+        <div className="col">
+          <div className="card">
+            <div className="card-body">
+              <h5 className="card-title mb-4">Reservation Calendar</h5>
+              <FullCalendar
+                plugins={[dayGridPlugin, interactionPlugin]}
+                initialView="dayGridMonth"
+                events={calendarEvents}
+                height="auto"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      
     </div>
   );
 };

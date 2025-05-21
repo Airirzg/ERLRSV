@@ -1,10 +1,12 @@
 export interface User {
   id: string;
-  name: string;
   email: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
   password?: string;
-  role: 'user' | 'admin';
-  type: 'individual' | 'team';
+  role: string;
+  isActive?: boolean;
   teamMembers?: string[];
 }
 

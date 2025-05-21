@@ -15,13 +15,14 @@ export default function ProfileForm({ initialData, onSubmit }: ProfileFormProps)
   const validateForm = (data: any): boolean => {
     setValidationError(null);
 
-    const name = data.name?.trim();
-    if (!name) {
-      setValidationError('Name is required');
+    const firstName = data.firstName?.trim();
+    const lastName = data.lastName?.trim();
+    if (!firstName || !lastName) {
+      setValidationError('First name and last name are required');
       return false;
     }
 
-    if (initialData?.type === 'team') {
+    if (initialData?.teamMembers?.length) {
       const members = teamMembers.split(',').map(email => email.trim()).filter(Boolean);
       if (members.length === 0) {
         setValidationError('At least one team member is required');
@@ -45,10 +46,12 @@ export default function ProfileForm({ initialData, onSubmit }: ProfileFormProps)
     try {
       const formData = new FormData(e.currentTarget);
       const data = {
-        name: formData.get('name'),
-        ...(initialData?.type === 'team' && {
+        firstName: formData.get('firstName'),
+        lastName: formData.get('lastName'),
+        phoneNumber: formData.get('phoneNumber'),
+        ...(initialData?.teamMembers?.length ? {
           members: teamMembers.split(',').map(email => email.trim()).filter(Boolean)
-        })
+        } : {})
       };
 
       if (!validateForm(data)) {
@@ -76,15 +79,15 @@ export default function ProfileForm({ initialData, onSubmit }: ProfileFormProps)
       <ErrorMessage error={validationError} className="mb-3" />
       
       <div className="mb-3">
-        <label htmlFor="name" className="form-label">
-          {initialData.type === 'team' ? 'Team Name' : 'Full Name'}
+        <label htmlFor="firstName" className="form-label">
+          First Name
         </label>
         <input
           type="text"
           className="form-control"
-          id="name"
-          name="name"
-          defaultValue={initialData.name}
+          id="firstName"
+          name="firstName"
+          defaultValue={initialData.firstName}
           required
           minLength={2}
           maxLength={100}
@@ -103,7 +106,34 @@ export default function ProfileForm({ initialData, onSubmit }: ProfileFormProps)
         <small className="text-muted">Email cannot be changed</small>
       </div>
 
-      {initialData.type === 'team' && (
+      <div className="mb-3">
+        <label htmlFor="lastName" className="form-label">
+          Last Name
+        </label>
+        <input
+          type="text"
+          id="lastName"
+          name="lastName"
+          className="form-control"
+          defaultValue={initialData.lastName || ''}
+          required
+        />
+      </div>
+
+      <div className="mb-3">
+        <label htmlFor="phoneNumber" className="form-label">
+          Phone Number
+        </label>
+        <input
+          type="tel"
+          id="phoneNumber"
+          name="phoneNumber"
+          className="form-control"
+          defaultValue={initialData?.phoneNumber || ''}
+        />
+      </div>
+
+      {initialData?.teamMembers && initialData.teamMembers.length > 0 && (
         <div className="mb-3">
           <label htmlFor="members" className="form-label">Team Members</label>
           <textarea

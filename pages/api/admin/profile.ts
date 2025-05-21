@@ -6,23 +6,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const session = await getSession({ req });
 
-    if (!session || session.user.role !== 'ADMIN') {
+    if (!session || !session.user || session.user.role !== 'ADMIN') {
       return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    // Ensure user has an email
+    if (!session.user.email) {
+      return res.status(400).json({ error: 'User email is required' });
     }
 
     switch (req.method) {
       case 'GET':
         try {
           const profile = await prisma.user.findUnique({
-            where: { id: session.user.id },
+            where: { email: session.user.email },
             select: {
               id: true,
-              name: true,
               email: true,
-              image: true,
               role: true,
               firstName: true,
               lastName: true,
+              phoneNumber: true,
               createdAt: true,
             },
           });
@@ -39,28 +43,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       case 'PUT':
         try {
-          const { name, email, firstName, lastName } = req.body;
+          const { email, firstName, lastName, phoneNumber } = req.body;
 
-          if (!name || !email) {
-            return res.status(400).json({ error: 'Name and email are required' });
+          if (!email || !firstName || !lastName) {
+            return res.status(400).json({ error: 'Email, first name, and last name are required' });
           }
 
           const updatedProfile = await prisma.user.update({
-            where: { id: session.user.id },
+            where: { email: session.user.email },
             data: {
-              name,
               email,
               firstName,
               lastName,
+              phoneNumber,
             },
             select: {
               id: true,
-              name: true,
               email: true,
-              image: true,
               role: true,
               firstName: true,
               lastName: true,
+              phoneNumber: true,
               createdAt: true,
             },
           });

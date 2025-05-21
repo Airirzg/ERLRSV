@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { broadcastEvent } from '../../admin/events';
 import { sendEmail, getReservationStatusEmailContent } from '@/utils/email';

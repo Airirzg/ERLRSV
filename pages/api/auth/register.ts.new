@@ -71,12 +71,12 @@ export default async function handler(
       // Create team
       const team = await prisma.team.create({
         data: {
-          teamName: teamName,
-          leaderId: leader.id,
+          name: teamName,
           // Connect the leader to the team
           members: {
             create: {
-              userId: leader.id
+              userId: leader.id,
+              role: 'LEADER'
             }
           }
         }

@@ -17,7 +17,7 @@ interface ReservationData {
   startDate: string;
   endDate: string;
   notes: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'ONGOING' | 'FINISHED';
 }
 
 interface ReservationFormProps {

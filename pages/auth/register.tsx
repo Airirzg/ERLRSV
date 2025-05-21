@@ -7,7 +7,8 @@ import { useAuth } from '@/context/AuthContext';
 const Register = () => {
   const { register, error: authError } = useAuth();
   const [registrationType, setRegistrationType] = useState<'individual' | 'team'>('individual');
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -29,12 +30,13 @@ const Register = () => {
 
     try {
       const registrationData = {
-        type: registrationType,
         email,
         password,
-        name: registrationType === 'individual' ? name : teamName,
+        firstName,
+        lastName,
         ...(registrationType === 'team' && {
-          members: teamMembers.split(',').map(email => email.trim()).filter(Boolean)
+          teamName,
+          memberEmails: teamMembers.split(',').map(email => email.trim()).filter(Boolean)
         })
       };
 
@@ -81,19 +83,34 @@ const Register = () => {
                   </div>
 
                   {registrationType === 'individual' ? (
-                    <div className="mb-3">
-                      <label htmlFor="name" className="form-label">
-                        Full Name
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        id="name"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        required
-                      />
-                    </div>
+                    <>
+                      <div className="mb-3">
+                        <label htmlFor="firstName" className="form-label">
+                          First Name
+                        </label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="firstName"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="mb-3">
+                        <label htmlFor="lastName" className="form-label">
+                          Last Name
+                        </label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="lastName"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </>
                   ) : (
                     <>
                       <div className="mb-3">

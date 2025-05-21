@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import { withAuth } from '@/middleware/api-auth';
+import { withAuth, AuthenticatedRequest } from '@/middleware/api-auth';
 
 const getNotificationsSchema = z.object({
   userId: z.string(),
@@ -45,8 +45,10 @@ async function getNotifications(req: AuthenticatedRequest, res: NextApiResponse)
       return res.status(403).json({ message: 'Not authorized to view these notifications' });
     }
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const take = parseInt(limit);
+    const pageNum = page ? parseInt(page) : 1;
+    const limitNum = limit ? parseInt(limit) : 10;
+    const skip = (pageNum - 1) * limitNum;
+    const take = limitNum;
 
     const where = {
       userId,
@@ -69,7 +71,7 @@ async function getNotifications(req: AuthenticatedRequest, res: NextApiResponse)
           type: true,
           read: true,
           createdAt: true,
-          metadata: true,
+          // Remove metadata field if it doesn't exist in your schema
         },
       }),
       prisma.notification.count({ where }),
@@ -80,10 +82,13 @@ async function getNotifications(req: AuthenticatedRequest, res: NextApiResponse)
       notifications.map(async (notification) => {
         if (notification.type === 'MESSAGE') {
           try {
-            const metadata = notification.metadata ? JSON.parse(notification.metadata) : null;
-            if (metadata?.messageId) {
+            // Extract message ID from the notification message
+            const messageIdMatch = notification.message.match(/messageId:([a-zA-Z0-9-]+)/);
+            const messageId = messageIdMatch ? messageIdMatch[1] : null;
+            
+            if (messageId) {
               const message = await prisma.message.findUnique({
-                where: { id: metadata.messageId },
+                where: { id: messageId },
                 select: {
                   id: true,
                   subject: true,
@@ -118,7 +123,7 @@ async function getNotifications(req: AuthenticatedRequest, res: NextApiResponse)
       pagination: {
         total,
         pages: Math.ceil(total / take),
-        currentPage: parseInt(page),
+        currentPage: pageNum,
         perPage: take,
       },
     });

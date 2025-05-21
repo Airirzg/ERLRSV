@@ -19,6 +19,13 @@ interface Reservation {
 
 const Dashboard = () => {
   const { user } = useAuth();
+  
+  // Toast notification function
+  const showToast = (message: string, type: 'success' | 'error') => {
+    // Simple implementation using alert for now
+    // In a real app, you would use a toast library
+    alert(`${type.toUpperCase()}: ${message}`);
+  };
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -119,7 +126,7 @@ const Dashboard = () => {
       );
 
       showToast('Note added successfully', 'success');
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error adding note:', error);
       showToast(error instanceof Error ? error.message : 'Failed to add note', 'error');
     }
@@ -156,7 +163,7 @@ const Dashboard = () => {
       <main className="container py-4">
         <div className="row mb-4">
           <div className="col">
-            <h1>Welcome, {user?.name || user?.email}</h1>
+            <h1>Welcome, {user ? `${user.firstName} ${user.lastName}` : 'User'}</h1>
             <p className="text-muted">Manage your reservations</p>
           </div>
         </div>

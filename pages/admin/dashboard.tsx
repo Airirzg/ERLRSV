@@ -38,6 +38,7 @@ interface Reservation {
     email: string;
   };
   equipment: {
+    id: string;
     name: string;
   };
 }
@@ -46,6 +47,7 @@ interface Equipment {
   id: string;
   name: string;
   status: string;
+  availability?: boolean;
 }
 
 const statusColors = {
@@ -78,6 +80,9 @@ export default function AdminDashboard() {
     totalEquipment: 0,
     availableEquipment: 0,
   });
+  
+  // State to track if the notification should be shown
+  const [showPendingNotification, setShowPendingNotification] = useState(true);
 
   useEffect(() => {
     // Initialize SSE connection
@@ -238,7 +243,7 @@ export default function AdminDashboard() {
       totalEquipment: equipment.length
     }));
 
-    // Available Equipment (not in active reservations)
+    // Available Equipment (not in active reservations, not in maintenance, and not in use)
     const activeReservationEquipmentIds = new Set(
       reservations
         .filter(reservation => 
@@ -251,7 +256,10 @@ export default function AdminDashboard() {
     );
 
     const availableCount = equipment.filter(
-      item => !activeReservationEquipmentIds.has(item.id)
+      item => 
+        !activeReservationEquipmentIds.has(item.id) && 
+        item.status === 'AVAILABLE' && 
+        (item.availability === undefined || item.availability === true)
     ).length;
     console.log('Available equipment:', availableCount);
 
@@ -282,7 +290,7 @@ export default function AdminDashboard() {
 
   const calendarEvents = reservations.map((reservation) => ({
     id: reservation.id,
-    title: `${reservation.equipment?.name || 'Unknown'} - ${reservation.user ? `${reservation.user.firstName} ${reservation.user.lastName}` : 'Unknown'}`,
+    title: `${reservation.equipment?.name || 'Unknown'} - ${reservation.user ? reservation.user.name : 'Unknown'}`,
     start: reservation.startDate,
     end: reservation.endDate,
     backgroundColor: statusColors[reservation.status],
@@ -322,8 +330,7 @@ export default function AdminDashboard() {
       if (!searchTerm) return true;
       
       const searchString = searchTerm.toLowerCase();
-      const userName = reservation.user ? 
-        `${reservation.user.firstName || ''} ${reservation.user.lastName || ''}`.trim() : '';
+      const userName = reservation.user ? reservation.user.name : '';
       const equipmentName = reservation.equipment?.name || '';
       
       return (
@@ -340,6 +347,28 @@ export default function AdminDashboard() {
   const handlePageChange = ({ selected }: { selected: number }) => {
     setCurrentPage(selected);
   };
+
+  useEffect(() => {
+    // Check if we need to update the page
+    if (currentPage > 0 && reservations.length <= currentPage * itemsPerPage) {
+      setCurrentPage(0);
+    }
+  }, [reservations, currentPage]);
+
+  // Effect to reset notification when visiting the reservations page
+  useEffect(() => {
+    const { pathname } = window.location;
+    // Check if the current page is the reservations page
+    if (pathname.includes('/admin/reservations')) {
+      setShowPendingNotification(false);
+      // Store in localStorage that the admin has seen the notifications
+      localStorage.setItem('pendingNotificationSeen', 'true');
+    } else {
+      // Check localStorage to see if the notification has been seen
+      const notificationSeen = localStorage.getItem('pendingNotificationSeen') === 'true';
+      setShowPendingNotification(!notificationSeen && stats.pendingApprovals > 0);
+    }
+  }, [stats.pendingApprovals]);
 
   const offset = currentPage * itemsPerPage;
   const currentReservations = filteredReservations.slice(offset, offset + itemsPerPage);
@@ -420,7 +449,23 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="col-12 col-sm-6 col-xl-3">
-                  <div className="card h-100 shadow-sm">
+                  <div className="card h-100 shadow-sm position-relative">
+                    {showPendingNotification && stats.pendingApprovals > 0 && (
+                      <div 
+                        className="position-absolute bg-danger text-white rounded-circle d-flex align-items-center justify-content-center" 
+                        style={{ 
+                          top: -10, 
+                          right: -10, 
+                          width: 24, 
+                          height: 24, 
+                          fontSize: '0.8rem', 
+                          fontWeight: 'bold',
+                          zIndex: 10
+                        }}
+                      >
+                        +{stats.pendingApprovals}
+                      </div>
+                    )}
                     <div className="card-body">
                       <div className="d-flex align-items-center justify-content-between">
                         <div>

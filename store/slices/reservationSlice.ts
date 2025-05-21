@@ -4,7 +4,7 @@ interface Reservation {
   id: number;
   startDate: string;
   endDate: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'ONGOING' | 'FINISHED';
   userId: string;
   notes?: string;
 }

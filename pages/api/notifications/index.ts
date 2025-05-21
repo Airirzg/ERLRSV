@@ -53,6 +53,10 @@ async function getNotifications(req: AuthenticatedRequest, res: NextApiResponse)
     console.log('Validated data:', { userId, page, limit, type });
 
     // Allow users to view their own notifications or admins to view any
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    
     if (req.user.id !== userId && req.user.role !== 'ADMIN') {
       console.error('Authorization error:', {
         requestedUserId: userId,
@@ -62,8 +66,12 @@ async function getNotifications(req: AuthenticatedRequest, res: NextApiResponse)
       return res.status(403).json({ message: 'Not authorized to view these notifications' });
     }
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const take = parseInt(limit);
+    // Ensure page and limit are valid numbers
+    const pageNum = typeof page === 'string' ? parseInt(page, 10) : 1;
+    const limitNum = typeof limit === 'string' ? parseInt(limit, 10) : 10;
+    
+    const skip = (pageNum - 1) * limitNum;
+    const take = limitNum;
 
     const where = {
       userId,
@@ -136,15 +144,16 @@ async function getNotifications(req: AuthenticatedRequest, res: NextApiResponse)
       pagination: {
         total,
         pages: Math.ceil(total / take),
-        currentPage: parseInt(page),
+        currentPage: pageNum,
         perPage: take,
       },
     });
   } catch (error) {
     console.error('Error in getNotifications:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return res.status(500).json({ 
       message: 'Error fetching notifications',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === 'development' ? errorMessage : undefined
     });
   }
 }
@@ -161,6 +170,11 @@ async function markAsRead(req: AuthenticatedRequest, res: NextApiResponse) {
 
     const { notificationIds } = validation.data;
 
+    // Check if user is authenticated
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    
     // If not admin, verify user owns these notifications
     if (req.user.role !== 'ADMIN') {
       const notifications = await prisma.notification.findMany({
@@ -172,7 +186,7 @@ async function markAsRead(req: AuthenticatedRequest, res: NextApiResponse) {
         },
       });
 
-      const hasUnauthorizedAccess = notifications.some(n => n.userId !== req.user.id);
+      const hasUnauthorizedAccess = notifications.some(n => n.userId !== req.user?.id);
       if (hasUnauthorizedAccess) {
         return res.status(403).json({ message: 'Not authorized to mark these notifications as read' });
       }

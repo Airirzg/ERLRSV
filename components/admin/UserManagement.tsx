@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import ReactPaginate from 'react-paginate';
 import { showToast } from '@/utils/notifications';
-import { User } from '@prisma/client';
+import { User as PrismaUser } from '@prisma/client';
+
+// Extend the Prisma User type to include isActive
+interface User extends PrismaUser {
+  isActive: boolean;
+}
 
 interface PaginatedResponse<T> {
   items: T[];
@@ -137,12 +142,12 @@ const UserManagement: React.FC = () => {
                       <td>{`${user.firstName} ${user.lastName}`}</td>
                       <td>{user.email}</td>
                       <td>
-                        <span className={`badge bg-${user.role === 'ADMIN' ? 'danger' : 'primary'}`}>
+                        <span className={`badge ${user.role === 'ADMIN' ? 'bg-danger' : 'bg-primary'}`}>
                           {user.role}
                         </span>
                       </td>
                       <td>
-                        <span className={`badge bg-${user.isActive ? 'success' : 'warning'}`}>
+                        <span className={`badge ${user.isActive ? 'bg-success' : 'bg-warning'}`}>
                           {user.isActive ? 'Active' : 'Inactive'}
                         </span>
                       </td>
@@ -232,13 +237,13 @@ const UserManagement: React.FC = () => {
                   </div>
                   <div className="mb-3">
                     <strong>Role:</strong>{' '}
-                    <span className={`badge bg-${selectedUser.role === 'ADMIN' ? 'danger' : 'primary'}`}>
+                    <span className={`badge ${selectedUser.role === 'ADMIN' ? 'bg-danger' : 'bg-primary'}`}>
                       {selectedUser.role}
                     </span>
                   </div>
                   <div className="mb-3">
                     <strong>Status:</strong>{' '}
-                    <span className={`badge bg-${selectedUser.isActive ? 'success' : 'warning'}`}>
+                    <span className={`badge ${selectedUser.isActive ? 'bg-success' : 'bg-warning'}`}>
                       {selectedUser.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </div>
