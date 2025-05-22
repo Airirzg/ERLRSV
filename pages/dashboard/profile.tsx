@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Loading from '@/components/Loading';
 import ErrorMessage from '@/components/ErrorMessage';
+import MessagePopup from '@/components/MessagePopup';
 import { ReservationStatus } from '@prisma/client';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -78,10 +79,51 @@ const Profile = () => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notificationError, setNotificationError] = useState<string | null>(null);
+  
+  // Message popup state
+  const [isMessagePopupOpen, setIsMessagePopupOpen] = useState(false);
+  const [popupUserMessage, setPopupUserMessage] = useState('');
+  const [popupAdminReply, setPopupAdminReply] = useState('');
+  const [popupSubject, setPopupSubject] = useState('');
 
   useEffect(() => {
     fetchProfileData();
   }, []);
+  
+  // Debug useEffect to monitor popup state changes
+  useEffect(() => {
+    console.log('Popup state changed:', { 
+      isOpen: isMessagePopupOpen, 
+      userMessage: popupUserMessage, 
+      adminReply: popupAdminReply, 
+      subject: popupSubject 
+    });
+  }, [isMessagePopupOpen, popupUserMessage, popupAdminReply, popupSubject]);
+  
+  // Function to open message popup
+  const openMessagePopup = (userMsg: string, adminReply: string, subject: string) => {
+    console.log('openMessagePopup called with:', { userMsg, adminReply, subject });
+    setPopupUserMessage(userMsg);
+    setPopupAdminReply(adminReply);
+    setPopupSubject(subject || 'Message Details');
+    setIsMessagePopupOpen(true);
+  };
+  
+  // Function to show message popup with user message and admin reply
+  const showMessagePopup = (userMessage: string, adminReply: string, subject: string) => {
+    setPopupUserMessage(userMessage);
+    setPopupAdminReply(adminReply);
+    setPopupSubject(subject);
+    setIsMessagePopupOpen(true);
+  };
+  
+  // Function to handle View Message button click in the admin reply notification
+  const handleViewMessage = (userMsg: string, adminReply: string, subj: string) => {
+    setPopupUserMessage(userMsg);
+    setPopupAdminReply(adminReply);
+    setPopupSubject(subj || 'Message Details');
+    setIsMessagePopupOpen(true);
+  };
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -224,6 +266,107 @@ const Profile = () => {
   };
 
   const renderNotificationContent = (notification: any) => {
+    // First, check if this is a message notification with our new format
+    if (notification.type === 'MESSAGE' && notification.message && 
+        (notification.message.includes('Your message:') || notification.message.includes("Admin's reply:"))) {
+      
+      // Extract message ID if present in the notification message
+      const messageIdMatch = notification.message.match(/messageId:([a-zA-Z0-9-]+)/);
+      const messageId = messageIdMatch ? messageIdMatch[1] : null;
+      
+      // Parse the notification message to extract components
+      let userMessage = '';
+      let adminReply = '';
+      let subject = '';
+      
+      // Split the message by the pipe character
+      if (notification.message.includes('|')) {
+        const parts = notification.message.split('|').map((part: string) => part.trim());
+        
+        // Process each part
+        parts.forEach((part: string) => {
+          if (part.startsWith('Your message:')) {
+            const match = part.match(/Your message: "([^"]+)"/); 
+            if (match && match[1]) {
+              userMessage = match[1];
+            }
+          } else if (part.startsWith("Admin's reply:")) {
+            const match = part.match(/Admin's reply: "([^"]+)"/); 
+            if (match && match[1]) {
+              adminReply = match[1];
+            }
+          } else if (part.startsWith('Subject:')) {
+            const match = part.match(/Subject: "([^"]+)"/); 
+            if (match && match[1]) {
+              subject = match[1];
+            }
+          }
+        });
+      }
+      
+      // Fallback to original regex if pipe parsing fails
+      if (!userMessage) {
+        const match = notification.message.match(/Your message: "([^"]+)"/); 
+        if (match && match[1]) userMessage = match[1];
+      }
+      
+      if (!adminReply) {
+        const match = notification.message.match(/Admin's reply: "([^"]+)"/); 
+        if (match && match[1]) adminReply = match[1];
+      }
+      
+      if (!subject) {
+        const match = notification.message.match(/Subject: "([^"]+)"/); 
+        if (match && match[1]) subject = match[1];
+      }
+      
+      return (
+        <div className="notification-content">
+          <div className="d-flex w-100 justify-content-between">
+            <h6 className="mb-1">{notification.title}</h6>
+            <small className="text-muted">
+              {new Date(notification.createdAt).toLocaleString()}
+            </small>
+          </div>
+          
+          {subject && (
+            <div className="message-subject mb-2">
+              <p className="mb-0"><strong>Subject:</strong> {subject}</p>
+            </div>
+          )}
+          
+          {userMessage && (
+            <div className="original-message p-3 bg-light rounded mb-3 border-start border-secondary border-3">
+              <p className="mb-1 fw-bold">Your message:</p>
+              <p className="mb-0">{userMessage}</p>
+            </div>
+          )}
+          
+          {adminReply && (
+            <div className="reply-content p-3 bg-light rounded mb-2 border-start border-primary border-3">
+              <p className="mb-1 fw-bold">Admin's Reply:</p>
+              <p className="mb-0">{adminReply}</p>
+            </div>
+          )}
+          
+          {messageId && (
+            <div className="mt-3">
+              <button 
+                className="btn btn-sm btn-outline-primary" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  openMessagePopup(userMessage, adminReply, subject);
+                }}
+              >
+                <FiMail className="me-1" /> View Full Message
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    // Handle legacy message notifications with messageDetails
     if (notification.type === 'MESSAGE' && notification.messageDetails) {
       const message = notification.messageDetails;
       const metadata = notification.metadata ? JSON.parse(notification.metadata) : null;
@@ -250,11 +393,131 @@ const Profile = () => {
                 <small><strong>{metadata.subject}</strong></small>
               </div>
             )}
+            
+            {/* Add View Full Message button */}
+            <div className="mt-3">
+              <button 
+                className="btn btn-sm btn-outline-primary" 
+                onClick={(e) => {
+                  e.preventDefault(); // Prevent any default behavior
+                  console.log('Button clicked, setting popup state');
+                  console.log('Message content:', message.content);
+                  console.log('Message subject:', message.subject);
+                  
+                  // Set state with a slight delay to ensure React processes it
+                  setTimeout(() => {
+                    setPopupUserMessage(message.content || 'No message content');
+                    setPopupAdminReply('');
+                    setPopupSubject(message.subject || 'Message Details');
+                    setIsMessagePopupOpen(true);
+                    console.log('Popup state set, isOpen:', true);
+                  }, 10);
+                }}
+              >
+                <FiMail className="me-1" /> View Full Message
+              </button>
+            </div>
           </div>
         </div>
       );
     }
     
+    // Handle admin reply notifications
+    if (notification.type === 'MESSAGE' && notification.message) {
+      // Extract message ID if present in the notification message
+      const messageIdMatch = notification.message.match(/messageId:([a-zA-Z0-9-]+)/);
+      const messageId = messageIdMatch ? messageIdMatch[1] : null;
+      
+      // Parse the notification message to extract components
+      let userMessage = '';
+      let adminReply = '';
+      let subject = '';
+      
+      // Split the message by the pipe character
+      if (notification.message.includes('|')) {
+        const parts = notification.message.split('|').map((part: string) => part.trim());
+        
+        // Process each part
+        parts.forEach((part: string) => {
+          if (part.startsWith('Your message:')) {
+            const match = part.match(/Your message: "([^"]+)"/); 
+            if (match && match[1]) {
+              userMessage = match[1];
+            }
+          } else if (part.startsWith("Admin's reply:")) {
+            const match = part.match(/Admin's reply: "([^"]+)"/); 
+            if (match && match[1]) {
+              adminReply = match[1];
+            }
+          } else if (part.startsWith('Subject:')) {
+            const match = part.match(/Subject: "([^"]+)"/); 
+            if (match && match[1]) {
+              subject = match[1];
+            }
+          }
+        });
+      }
+      
+      // Fallback to original regex if pipe parsing fails
+      if (!userMessage) {
+        const match = notification.message.match(/Your message: "([^"]+)"/); 
+        if (match && match[1]) userMessage = match[1];
+      }
+      
+      if (!adminReply) {
+        const match = notification.message.match(/Admin's reply: "([^"]+)"/); 
+        if (match && match[1]) adminReply = match[1];
+      }
+      
+      if (!subject) {
+        const match = notification.message.match(/Subject: "([^"]+)"/); 
+        if (match && match[1]) subject = match[1];
+      }
+      
+      return (
+        <div className="notification-content">
+          <div className="d-flex w-100 justify-content-between">
+            <h6 className="mb-1">{notification.title}</h6>
+            <small className="text-muted">
+              {new Date(notification.createdAt).toLocaleString()}
+            </small>
+          </div>
+          
+          {subject && (
+            <div className="message-subject mb-2">
+              <p className="mb-0"><strong>Subject:</strong> {subject}</p>
+            </div>
+          )}
+          
+          {userMessage && (
+            <div className="original-message p-3 bg-light rounded mb-3 border-start border-secondary border-3">
+              <p className="mb-1 fw-bold">Your message:</p>
+              <p className="mb-0">{userMessage}</p>
+            </div>
+          )}
+          
+          {adminReply && (
+            <div className="reply-content p-3 bg-light rounded mb-2 border-start border-primary border-3">
+              <p className="mb-1 fw-bold">Admin's Reply:</p>
+              <p className="mb-0">{adminReply}</p>
+            </div>
+          )}
+          
+          {messageId && (
+            <div className="mt-3">
+              <button 
+                className="btn btn-sm btn-outline-primary" 
+                onClick={() => router.push(`/dashboard/messages?messageId=${messageId}`)}
+              >
+                <FiMail className="me-1" /> View Full Message
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    // Default notification display
     return (
       <div className="notification-content">
         <div className="d-flex w-100 justify-content-between">
@@ -610,6 +873,15 @@ const Profile = () => {
         </div>
       </main>
       <Footer />
+      
+      {/* Message Popup Component */}
+      <MessagePopup
+        isOpen={isMessagePopupOpen}
+        onClose={() => setIsMessagePopupOpen(false)}
+        userMessage={popupUserMessage}
+        adminReply={popupAdminReply}
+        subject={popupSubject}
+      />
       
       <style jsx>{`
         .nav-tabs .nav-link.active {
